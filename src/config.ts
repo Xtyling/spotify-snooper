@@ -19,6 +19,7 @@ const schema = z.object({
   SPOTIFY_REDIRECT_URI: z.string().url(),
   POLL_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(1440).default(10),
   POLL_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(20),
+  SCHEDULER_INTERVAL_SECONDS: z.coerce.number().int().min(5).max(300).default(5),
 });
 
 export type AppConfig = z.infer<typeof schema>;

@@ -9,7 +9,7 @@ function notice(message?: string, error?: string): string {
 }
 
 function pollCountdown(playlist: StoredPlaylist): string {
-  return `<span class="countdown" data-countdown data-status="${escapeHtml(playlist.status)}" data-next-poll="${escapeHtml(new Date(playlist.nextPollAt).toISOString())}" title="Next scheduled automated check">⏱ <span>${playlist.status === "paused" ? "Paused" : "Calculating…"}</span></span>`;
+  return `<span class="countdown" data-countdown data-playlist-id="${escapeHtml(playlist.id)}" data-status="${escapeHtml(playlist.status)}" data-next-poll="${escapeHtml(new Date(playlist.nextPollAt).toISOString())}" data-last-error="${escapeHtml(playlist.lastError ?? "")}" title="Next scheduled automated check">⏱ <span>${playlist.status === "paused" ? "Paused" : "Calculating…"}</span></span>`;
 }
 
 export function loginPage(error?: string): string {

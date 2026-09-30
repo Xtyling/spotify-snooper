@@ -41,7 +41,7 @@ successful poll, and several edits between polls may appear as one transition.
                                                                         ^
                                                                         | SQL
 +----------------+       starts       +-------------------------------+ |
-| Hostinger cron | -----------------> | Spotify Snooper poll worker   |-+
+| Optional cron  | -----------------> | Spotify Snooper poll worker   |-+
 +----------------+                    +---------------+---------------+
                                                      |
                                                      | HTTPS + Bearer token
@@ -88,6 +88,15 @@ The worker is a finite command invoked by cron. It:
 
 One playlist failure must not abort the batch. A global rate limit should stop
 new Spotify calls and defer affected monitors according to `Retry-After`.
+
+### Automatic scheduler
+
+The web process checks for due monitors every few seconds and runs the same leased
+polling batch as the finite worker. Database leases make this safe across multiple
+web instances and an optional cron worker. A failed poll keeps `next_poll_at` due
+and stores its retry cooldown in the lease-expiry field; only a confirmed success
+advances `next_poll_at`. Due browser countdowns refresh status from the server and
+reset only after observing that committed value.
 
 ### Spotify client
 
@@ -241,8 +250,9 @@ items, episodes, insertions, removals, replacements, and reorderings.
 
 ## 6. Scheduling and concurrency
 
-Cron should run at least as often as the smallest allowed polling interval. Each
-invocation claims rows matching:
+The web scheduler runs continuously while the application is active. An optional
+cron fallback should run at least as often as the smallest allowed polling
+interval. Every polling batch claims rows matching:
 
 ```text
 status = active

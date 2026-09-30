@@ -47,7 +47,7 @@ Spotify quota approval.
 | Data access | Drizzle ORM and SQL migrations | Typed queries without hiding the schema |
 | Validation | Zod | Shared configuration and request validation |
 | Tests | Vitest | Fast TypeScript unit and integration tests |
-| Scheduling | Hostinger cron calling a worker command | Independent of web-process uptime |
+| Scheduling | Built-in leased scheduler, with optional cron worker | Automatic polling plus a durable fallback |
 
 The web process and worker share one codebase and database:
 
@@ -63,12 +63,13 @@ specific plan before implementation or deployment.
 
 ## Polling model
 
-Spotify does not push playlist-change events to this app, so a scheduled worker
-finds changes by polling:
+Spotify does not push playlist-change events to this app, so the web process runs
+a scheduler that finds changes by polling. The standalone worker uses the same
+database-leased polling batch and can optionally run from cron as a fallback:
 
 ```text
-Hostinger cron
-    -> poll worker
+Web scheduler or optional Hostinger cron
+    -> leased poll batch
         -> atomically claim due monitors
         -> refresh the Spotify access token when needed
         -> fetch playlist name, description, and snapshot_id
@@ -86,6 +87,9 @@ downloaded when `snapshot_id` changes, reducing API usage.
 The worker must paginate all items, preserve duplicates and ordering, tolerate
 unavailable items, and respect Spotify's `429` response and `Retry-After` header.
 Database leases prevent overlapping cron runs from polling the same monitor.
+The dashboard countdown reads `next_poll_at`. Once due, it remains due and checks
+server status until a successful poll advances that value; a failed attempt uses
+a separate retry cooldown and cannot falsely reset the timer.
 
 See [docs/architecture.md](docs/architecture.md) for the component design, data
 model, diff rules, security boundaries, and deployment topology.
@@ -150,6 +154,7 @@ SPOTIFY_CLIENT_SECRET=your-client-secret
 SPOTIFY_REDIRECT_URI=https://example.com/auth/spotify/callback
 POLL_INTERVAL_MINUTES=10
 POLL_BATCH_SIZE=20
+SCHEDULER_INTERVAL_SECONDS=5
 ```
 
 `SPOTIFY_REDIRECT_URI` must exactly match a redirect URI configured in Spotify's
@@ -194,8 +199,9 @@ migrations/
 5. Set Hostinger's output directory to `none` and entry file to `server.js`, then
    start the web process with `npm start`. The root entry file loads the compiled
    `dist/server.js` application.
-6. Add a Hostinger cron job that runs `npm run worker:poll` from the application
-   directory every minute. The database decides which playlists are actually due.
+6. The running web process polls automatically. Optionally add a Hostinger cron
+   job that runs `npm run worker:poll` as a fallback; database leases prevent the
+   web scheduler and worker from polling the same playlist simultaneously.
 
 Do not expose `.env` from the web root. On shared hosting, confirm that the plan
 supports a persistent Node.js process and Node commands in cron. Otherwise deploy

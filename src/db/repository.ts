@@ -301,7 +301,8 @@ export async function markPlaylistUnchanged(
 
 export async function setPlaylistStatus(id: string, status: "active" | "paused"): Promise<void> {
   await getPool().execute(
-    "UPDATE monitored_playlists SET status = ?, next_poll_at = NOW(3) WHERE id = ?",
+    `UPDATE monitored_playlists SET status = ?, next_poll_at = NOW(3),
+       lease_token = NULL, lease_expires_at = NULL WHERE id = ?`,
     [status, id],
   );
 }
@@ -338,10 +339,10 @@ export async function markPlaylistFailed(
   message: string,
   retryAfterSeconds = 300,
 ): Promise<void> {
-  const nextPollAt = new Date(Date.now() + retryAfterSeconds * 1000);
+  const retryAt = new Date(Date.now() + retryAfterSeconds * 1000);
   await getPool().execute(
-    `UPDATE monitored_playlists SET last_error = ?, next_poll_at = ?,
-       lease_token = NULL, lease_expires_at = NULL WHERE id = ?`,
-    [message.slice(0, 500), nextPollAt, id],
+    `UPDATE monitored_playlists SET last_error = ?,
+       lease_token = NULL, lease_expires_at = ? WHERE id = ?`,
+    [message.slice(0, 500), retryAt, id],
   );
 }

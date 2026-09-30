@@ -78,7 +78,9 @@ export function layout(title: string, body: string): string {
         const remaining = Math.max(0, Math.ceil((target - now) / 1000));
         if (remaining === 0) {
           timer.classList.add("due");
-          label.textContent = "T-00:00 · due";
+          label.textContent = timer.dataset.lastError
+            ? "T-00:00 · retry pending"
+            : "T-00:00 · polling…";
           continue;
         }
         timer.classList.remove("due");
@@ -91,8 +93,31 @@ export function layout(title: string, body: string): string {
           : "T-" + two(hours) + ":" + two(minutes) + ":" + two(seconds);
       }
     };
+    const refreshStatuses = async () => {
+      if (![...timers].some((timer) => timer.classList.contains("due"))) return;
+      try {
+        const response = await fetch("/api/poll-status", {
+          headers: { accept: "application/json" },
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const statuses = await response.json();
+        const byId = new Map(statuses.map((status) => [status.id, status]));
+        for (const timer of timers) {
+          const status = byId.get(timer.dataset.playlistId);
+          if (!status) continue;
+          timer.dataset.status = status.status;
+          timer.dataset.nextPoll = status.nextPollAt;
+          timer.dataset.lastError = status.lastError || "";
+        }
+        update();
+      } catch {
+        // Keep the timer due until the server confirms a completed poll.
+      }
+    };
     update();
     window.setInterval(update, 1000);
+    window.setInterval(refreshStatuses, 3000);
   })();
 </script>
 </body>

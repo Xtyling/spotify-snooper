@@ -171,6 +171,18 @@ export async function buildApp() {
     );
   });
 
+  app.get("/api/poll-status", async (_request, reply) => {
+    const playlists = await listPlaylists();
+    reply.header("cache-control", "no-store");
+    return playlists.map((playlist) => ({
+      id: playlist.id,
+      status: playlist.status,
+      nextPollAt: playlist.nextPollAt.toISOString(),
+      lastPolledAt: playlist.lastPolledAt.toISOString(),
+      lastError: playlist.lastError,
+    }));
+  });
+
   app.post("/playlists/:id/poll", async (request, reply) => {
     const { id } = request.params as { id: string };
     try {
