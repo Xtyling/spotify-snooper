@@ -79,10 +79,25 @@ export function diffItems(previous: CanonicalItem[], current: CanonicalItem[]): 
     .filter((item) => before.has(item.occurrenceKey))
     .map((item) => item.occurrenceKey);
   if (previousSurvivors.some((key, index) => key !== currentSurvivors[index])) {
+    const previousIndexes = new Map(
+      previousSurvivors.map((key, index) => [key, index]),
+    );
+    const moves = currentSurvivors.flatMap((key, currentIndex) => {
+      const previousIndex = previousIndexes.get(key);
+      const currentItem = after.get(key);
+      const previousItem = before.get(key);
+      if (previousIndex === currentIndex || !currentItem || !previousItem) return [];
+      return [{
+        name: currentItem.name,
+        uri: currentItem.uri,
+        fromPosition: previousItem.position + 1,
+        toPosition: currentItem.position + 1,
+      }];
+    });
     events.push({
       type: "items_reordered",
-      summary: "Reordered playlist items",
-      details: { previousOrder: previousSurvivors, currentOrder: currentSurvivors },
+      summary: `${moves.length} playlist item${moves.length === 1 ? "" : "s"} changed position`,
+      details: { moves },
     });
   }
 

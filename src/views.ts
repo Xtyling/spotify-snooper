@@ -8,6 +8,10 @@ function notice(message?: string, error?: string): string {
   return "";
 }
 
+function pollCountdown(playlist: StoredPlaylist): string {
+  return `<span class="countdown" data-countdown data-status="${escapeHtml(playlist.status)}" data-next-poll="${escapeHtml(new Date(playlist.nextPollAt).toISOString())}" title="Next scheduled automated check">⏱ <span>${playlist.status === "paused" ? "Paused" : "Calculating…"}</span></span>`;
+}
+
 export function loginPage(error?: string): string {
   return layout("Sign in", `
     <section class="card" style="max-width:30rem;margin:4rem auto">
@@ -45,10 +49,11 @@ export function dashboardPage(input: {
         <div class="playlist-head">
           ${playlist.imageUrl ? `<img class="cover" src="${escapeHtml(playlist.imageUrl)}" alt="">` : ""}
           <div><h2><a href="/playlists/${playlist.id}">${escapeHtml(playlist.name)}</a></h2>
-          <p class="muted">${playlist.itemCount} items · ${escapeHtml(playlist.status)}</p></div>
+          <p class="muted">${playlist.monitoringMode === "metadata_only" ? "Title and description only" : `${playlist.itemCount} items`} · ${escapeHtml(playlist.status)}</p></div>
         </div>
         <p>${escapeHtml(playlist.description || "No description")}</p>
         <p class="muted">Last checked ${formatDate(playlist.lastPolledAt)}</p>
+        <p>${pollCountdown(playlist)}</p>
         ${playlist.lastError ? `<p class="error">${escapeHtml(playlist.lastError)}</p>` : ""}
       </article>`).join("")
     : `<p class="muted">No playlists are being logged yet.</p>`;
@@ -61,6 +66,38 @@ export function dashboardPage(input: {
     <section style="margin-top:2rem"><h2>Monitored playlists</h2><div class="grid">${cards}</div></section>`);
 }
 
+function eventDetails(event: StoredEvent): string {
+  const text = (key: string): string =>
+    typeof event.details[key] === "string" ? event.details[key] : "";
+  const position = (key: string): string =>
+    typeof event.details[key] === "number"
+      ? String((event.details[key] as number) + 1)
+      : "";
+
+  if (event.type === "title_changed" || event.type === "description_changed") {
+    return `<div class="change-values">
+      <div><small class="muted">Before</small><p>${escapeHtml(text("before") || "Empty")}</p></div>
+      <div><small class="muted">After</small><p>${escapeHtml(text("after") || "Empty")}</p></div>
+    </div>`;
+  }
+  if (event.type === "item_added") {
+    return `<p class="muted">Added at position ${position("position") || "unknown"}.</p>`;
+  }
+  if (event.type === "item_removed") {
+    return `<p class="muted">Previously at position ${position("previousPosition") || "unknown"}.</p>`;
+  }
+  if (event.type === "items_reordered") {
+    const moves = Array.isArray(event.details.moves)
+      ? event.details.moves as Array<Record<string, unknown>>
+      : [];
+    if (moves.length === 0) {
+      return `<p class="muted">Detailed positions were not recorded for this older event.</p>`;
+    }
+    return `<ul>${moves.map((move) => `<li>${escapeHtml(move.name)}: position ${escapeHtml(move.fromPosition)} → ${escapeHtml(move.toPosition)}</li>`).join("")}</ul>`;
+  }
+  return "";
+}
+
 export function playlistPage(
   playlist: StoredPlaylist,
   items: CanonicalItem[],
@@ -68,21 +105,23 @@ export function playlistPage(
   message?: string,
   error?: string,
 ): string {
-  const itemList = items.length
+  const itemList = playlist.monitoringMode === "metadata_only"
+    ? `<p class="card muted">Spotify does not expose this playlist's items to your account. Snooper is logging public title and description changes only.</p>`
+    : items.length
     ? `<ol class="items">${items.map((item) => `<li>
         ${item.spotifyUrl ? `<a href="${escapeHtml(item.spotifyUrl)}">${escapeHtml(item.name)}</a>` : escapeHtml(item.name)}
         ${item.artists ? `<span class="muted"> — ${escapeHtml(item.artists)}</span>` : ""}
       </li>`).join("")}</ol>`
     : `<p class="muted">This playlist currently has no items.</p>`;
   const history = events.length
-    ? events.map((event) => `<article class="event"><strong>${escapeHtml(event.summary)}</strong><br><span class="muted">${formatDate(event.detectedAt)}</span></article>`).join("")
+    ? events.map((event) => `<article class="event"><strong>${escapeHtml(event.summary)}</strong><br><span class="muted">${formatDate(event.detectedAt)}</span>${eventDetails(event)}</article>`).join("")
     : `<p class="muted">No changes have been detected since logging began.</p>`;
 
   return layout(playlist.name, `
     ${notice(message, error)}
     <section class="playlist-head">
       ${playlist.imageUrl ? `<img class="cover" src="${escapeHtml(playlist.imageUrl)}" alt="">` : ""}
-      <div><h1>${escapeHtml(playlist.name)}</h1><p class="muted">By ${escapeHtml(playlist.ownerName)} · first logged ${formatDate(playlist.initialLoggedAt)}</p></div>
+      <div><h1>${escapeHtml(playlist.name)}</h1><p class="muted">By ${escapeHtml(playlist.ownerName)} · first logged ${formatDate(playlist.initialLoggedAt)}</p>${pollCountdown(playlist)}</div>
     </section>
     <p>${escapeHtml(playlist.description || "No description")}</p>
     <p><a href="${escapeHtml(playlist.spotifyUrl)}">Open in Spotify</a></p>
@@ -93,5 +132,5 @@ export function playlistPage(
     </div>
     ${playlist.lastError ? `<p class="card error">${escapeHtml(playlist.lastError)}</p>` : ""}
     <section style="margin-top:2rem"><h2>Changes</h2>${history}</section>
-    <section style="margin-top:2rem"><h2>Current items (${items.length})</h2>${itemList}</section>`);
+    <section style="margin-top:2rem"><h2>${playlist.monitoringMode === "metadata_only" ? "Content access" : `Current items (${items.length})`}</h2>${itemList}</section>`);
 }

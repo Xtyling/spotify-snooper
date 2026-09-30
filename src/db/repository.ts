@@ -28,6 +28,7 @@ export interface StoredPlaylist {
   spotifySnapshotId: string;
   contentHash: string;
   itemCount: number;
+  monitoringMode: "full" | "metadata_only";
   status: string;
   nextPollAt: Date;
   lastPolledAt: Date;
@@ -76,6 +77,7 @@ const PLAYLIST_COLUMNS = `
   spotify_snapshot_id AS spotifySnapshotId,
   content_hash AS contentHash,
   item_count AS itemCount,
+  monitoring_mode AS monitoringMode,
   status,
   next_poll_at AS nextPollAt,
   last_polled_at AS lastPolledAt,
@@ -196,6 +198,7 @@ interface SnapshotInput {
   imageUrl: string | null;
   spotifySnapshotId: string;
   contentHash: string;
+  monitoringMode: "full" | "metadata_only";
   items: CanonicalItem[];
 }
 
@@ -236,12 +239,12 @@ export async function createPlaylist(input: SnapshotInput, intervalMinutes: numb
     await connection.execute(
       `INSERT INTO monitored_playlists
          (id, spotify_playlist_id, name, description, owner_name, spotify_url,
-          image_url, spotify_snapshot_id, content_hash, item_count, status,
+          image_url, spotify_snapshot_id, content_hash, item_count, monitoring_mode, status,
           next_poll_at, last_polled_at, last_changed_at, initial_logged_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
       [playlistId, input.spotifyPlaylistId, input.name, input.description,
         input.ownerName, input.spotifyUrl, input.imageUrl, input.spotifySnapshotId,
-        input.contentHash, input.items.length, nextPollAt, now, now, now],
+        input.contentHash, input.items.length, input.monitoringMode, nextPollAt, now, now, now],
     );
     await insertSnapshot(connection, playlistId, input, now);
   });
@@ -271,12 +274,12 @@ export async function saveChangedPlaylist(
     await connection.execute(
       `UPDATE monitored_playlists SET
          name = ?, description = ?, owner_name = ?, spotify_url = ?, image_url = ?,
-         spotify_snapshot_id = ?, content_hash = ?, item_count = ?,
+         spotify_snapshot_id = ?, content_hash = ?, item_count = ?, monitoring_mode = ?,
          next_poll_at = ?, last_polled_at = ?, last_changed_at = ?, last_error = NULL,
          lease_token = NULL, lease_expires_at = NULL
        WHERE id = ?`,
       [input.name, input.description, input.ownerName, input.spotifyUrl, input.imageUrl,
-        input.spotifySnapshotId, input.contentHash, input.items.length, nextPollAt,
+        input.spotifySnapshotId, input.contentHash, input.items.length, input.monitoringMode, nextPollAt,
         now, now, playlistId],
     );
   });

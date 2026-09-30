@@ -17,18 +17,19 @@ Web API and persists an audit trail in a MySQL-compatible database.
 3. Start, pause, resume, and remove a playlist monitor.
 4. Poll active monitors on a configurable schedule.
 5. Record title, description, item, and ordering changes.
-6. Show a chronological change history and actionable polling errors.
+6. Show a chronological change history, a live countdown to each next scheduled
+   check, and actionable polling errors.
 
 Notifications, multiple application users, and exports are deliberately deferred.
 
 ## Spotify platform constraints
 
-The MVP should promise full content monitoring only for playlists owned by the
-connected Spotify user or playlists where that user is a collaborator. Spotify's
-current Get Playlist documentation says the `items` field is available only in
-those cases. A playlist that exposes metadata but not items can still be rejected
-with an explanatory message or monitored for metadata only; the implementation
-must detect the capability instead of silently reporting an empty playlist.
+Full content monitoring is available only for playlists owned by the connected
+Spotify user or playlists where that user is a collaborator. Spotify's current
+Get Playlist documentation says the `items` field is available only in those
+cases. Other accessible playlists are automatically stored in `metadata_only`
+mode, which logs title and description changes while clearly marking that item
+history is unavailable.
 
 New Spotify apps begin in development mode. Spotify currently limits that mode to
 a small allowlist of authenticated users and requires the app owner to have
@@ -238,6 +239,8 @@ or recreate the existing playlist data.
 - A connected user can add, pause, and resume a playlist monitor.
 - Repeated or overlapping worker runs do not duplicate change events.
 - Title, description, add, remove, and reorder changes appear in the dashboard.
+- Public playlists without content permission remain available in metadata-only
+  mode and log title and description changes.
 - An unchanged playlist causes neither a full item download nor a new snapshot.
 - Rate limits, expired authorization, missing/private playlists, and partial API
   failures produce actionable states.

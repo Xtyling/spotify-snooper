@@ -18,9 +18,10 @@ The MVP optimizes for:
 Full content monitoring is limited to playlists for which Spotify returns item
 data. Under Spotify's current API documentation, that means playlists owned by
 the authorized user or playlists where that user is a collaborator. Monitor
-creation must probe this capability and represent `metadata_only` or
-`content_unavailable` explicitly rather than treating a missing item collection
-as an empty playlist.
+creation probes this capability and stores other accessible playlists as
+`metadata_only` rather than treating a missing item collection as an empty
+playlist. Metadata-only monitors poll and record title and description changes
+without claiming to retain item history.
 
 This is not a real-time system. A change can only be detected after the next
 successful poll, and several edits between polls may appear as one transition.

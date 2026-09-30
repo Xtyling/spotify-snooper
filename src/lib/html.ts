@@ -47,10 +47,54 @@ export function layout(title: string, body: string): string {
     ol.items { padding-left:2rem; }
     ol.items li { padding:.45rem; border-bottom:1px solid #29302c; }
     .event { border-left:3px solid #68df91; padding-left:1rem; margin:1rem 0; }
+    .countdown { display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .6rem; border:1px solid #3a433e; border-radius:999px; color:#c9f7d8; background:#101713; font-variant-numeric:tabular-nums; }
+    .countdown.due { color:#ffd28a; border-color:#765b2f; background:#1d180f; }
+    .change-values { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-top:.75rem; }
+    .change-values > div { background:#0e110f; border:1px solid #29302c; border-radius:.5rem; padding:.75rem; }
+    .change-values p { margin:.25rem 0 0; white-space:pre-wrap; }
     .actions { display:flex; flex-wrap:wrap; gap:.5rem; }
     @media (max-width:600px) { .add-form { grid-template-columns:1fr; } header { align-items:flex-start; } }
   </style>
 </head>
-<body><main><header><a class="brand" href="/">Spotify Snooper</a></header>${body}</main></body>
+<body><main><header><a class="brand" href="/">Spotify Snooper</a></header>${body}</main>
+<script>
+  (() => {
+    const timers = document.querySelectorAll("[data-countdown]");
+    const two = (value) => String(value).padStart(2, "0");
+    const update = () => {
+      const now = Date.now();
+      for (const timer of timers) {
+        const label = timer.querySelector("span");
+        if (!label) continue;
+        if (timer.dataset.status === "paused") {
+          label.textContent = "Paused";
+          continue;
+        }
+        const target = Date.parse(timer.dataset.nextPoll || "");
+        if (!Number.isFinite(target)) {
+          label.textContent = "Not scheduled";
+          continue;
+        }
+        const remaining = Math.max(0, Math.ceil((target - now) / 1000));
+        if (remaining === 0) {
+          timer.classList.add("due");
+          label.textContent = "T-00:00 · due";
+          continue;
+        }
+        timer.classList.remove("due");
+        const days = Math.floor(remaining / 86400);
+        const hours = Math.floor((remaining % 86400) / 3600);
+        const minutes = Math.floor((remaining % 3600) / 60);
+        const seconds = remaining % 60;
+        label.textContent = days > 0
+          ? "T-" + days + "d " + two(hours) + ":" + two(minutes) + ":" + two(seconds)
+          : "T-" + two(hours) + ":" + two(minutes) + ":" + two(seconds);
+      }
+    };
+    update();
+    window.setInterval(update, 1000);
+  })();
+</script>
+</body>
 </html>`;
 }

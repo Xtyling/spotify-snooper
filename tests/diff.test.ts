@@ -33,7 +33,12 @@ describe("playlist diff", () => {
   it("detects a reorder", () => {
     const before = canonicalizeItems([item("a"), item("b")]);
     const after = canonicalizeItems([item("b"), item("a")]);
-    expect(diffItems(before, after).map((event) => event.type)).toEqual(["items_reordered"]);
+    const changes = diffItems(before, after);
+    expect(changes.map((event) => event.type)).toEqual(["items_reordered"]);
+    expect(changes[0]?.details.moves).toEqual([
+      { name: "b", uri: "b", fromPosition: 2, toPosition: 1 },
+      { name: "a", uri: "a", fromPosition: 1, toPosition: 2 },
+    ]);
   });
 
   it("produces a stable content hash", () => {
