@@ -39,7 +39,7 @@ Spotify quota approval.
 
 | Area | Choice | Reason |
 | --- | --- | --- |
-| Runtime | Node.js 20+ and TypeScript | One language for the web app and worker |
+| Runtime | Node.js 22.12+ and TypeScript | Matches current runtime dependencies |
 | HTTP server | Fastify | Small, typed, and suitable for a long-running process |
 | UI | Server-rendered HTML with progressive enhancement | Simple deployment and authentication boundary |
 | Database | MySQL 8 or MariaDB | A natural fit for Hostinger and this workload |
@@ -105,7 +105,7 @@ refresh token is expired or revoked instead of retrying forever.
 
 ## Local setup
 
-Requirements: Node.js 20+, a MySQL 8/MariaDB database, Spotify Premium, and a
+Requirements: Node.js 22.12+, a MySQL 8/MariaDB database, Spotify Premium, and a
 Spotify Developer application.
 
 ```bash
@@ -187,7 +187,9 @@ migrations/
 3. Configure the remaining values from `.env.example` as server-side environment
    variables.
 4. Run `npm ci`, `npm run build`, and `npm run db:migrate` during deployment.
-5. Start the web process with `npm start`.
+5. Set Hostinger's output directory to `none` and entry file to `server.js`, then
+   start the web process with `npm start`. The root entry file loads the compiled
+   `dist/server.js` application.
 6. Add a Hostinger cron job that runs `npm run worker:poll` from the application
    directory every minute. The database decides which playlists are actually due.
 
