@@ -263,7 +263,7 @@ retry must be no earlier than Spotify's `Retry-After`. Permanent auth errors set
 - Validate playlist IDs rather than interpolating arbitrary URLs.
 - Use parameterized SQL and escape server-rendered content.
 - Apply a restrictive Content Security Policy and standard security headers.
-- Never log tokens, cookies, authorization codes, raw database URLs, or playlist
+- Never log tokens, cookies, authorization codes, database credentials, or playlist
   descriptions without sanitization.
 - Prefer a local CLI cron command. If cron must call HTTP, protect that endpoint
   with a strong, dedicated secret.

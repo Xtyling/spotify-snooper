@@ -5,8 +5,13 @@ let pool: Pool | undefined;
 
 export function getPool(): Pool {
   if (!pool) {
+    const config = getConfig();
     pool = mysql.createPool({
-      uri: getConfig().DATABASE_URL,
+      host: config.DB_HOST,
+      port: config.DB_PORT,
+      database: config.DB_NAME,
+      user: config.DB_USER,
+      password: config.DB_PASSWORD,
       connectionLimit: 5,
       dateStrings: false,
       decimalNumbers: true,

@@ -134,7 +134,11 @@ The app will validate these environment variables at startup:
 NODE_ENV=production
 PORT=3000
 APP_BASE_URL=https://example.com
-DATABASE_URL=mysql://user:password@host:3306/spotify_snooper
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=your_database_name
+DB_USER=your_database_username
+DB_PASSWORD=your_database_password
 SESSION_SECRET=replace-with-a-long-random-value
 TOKEN_ENCRYPTION_KEY=replace-with-a-32-byte-key
 ADMIN_PASSWORD=replace-with-a-long-dashboard-password
@@ -176,7 +180,10 @@ migrations/
 ## Hostinger deployment
 
 1. Create a MySQL database and user in hPanel.
-2. Set `DATABASE_URL` from the hPanel database host, name, user, and password.
+2. Copy the database host, port, database name, username, and password from hPanel
+   into the corresponding `DB_*` environment variables. `DB_HOST=localhost` and
+   `DB_PORT=3306` are typical when the database and app share a host, but use the
+   exact values shown by Hostinger.
 3. Configure the remaining values from `.env.example` as server-side environment
    variables.
 4. Run `npm ci`, `npm run build`, and `npm run db:migrate` during deployment.
