@@ -112,13 +112,15 @@ Spotify Developer application.
 npm install
 cp .env.example .env
 npm run build
-npm run db:migrate
 npm run dev
 ```
 
 On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`.
 Configure the exact value of `SPOTIFY_REDIRECT_URI` in the Spotify Developer
 Dashboard, open the local site, enter `ADMIN_PASSWORD`, and connect Spotify.
+The web process automatically applies missing database migrations before it
+starts accepting requests. `npm run db:migrate` remains available for manually
+checking or applying migrations.
 
 Run one polling batch manually with:
 
@@ -186,7 +188,8 @@ migrations/
    exact values shown by Hostinger.
 3. Configure the remaining values from `.env.example` as server-side environment
    variables.
-4. Run `npm ci`, `npm run build`, and `npm run db:migrate` during deployment.
+4. Run `npm ci` and `npm run build` during deployment. The application applies
+   missing migrations automatically on startup.
 5. Set Hostinger's output directory to `none` and entry file to `server.js`, then
    start the web process with `npm start`. The root entry file loads the compiled
    `dist/server.js` application.
@@ -196,6 +199,13 @@ migrations/
 Do not expose `.env` from the web root. On shared hosting, confirm that the plan
 supports a persistent Node.js process and Node commands in cron. Otherwise deploy
 the same project on a Hostinger VPS.
+
+The configured database user needs permission to create and alter tables, indexes,
+and foreign keys. Both the web process and poll worker run the idempotent migration
+check before doing application work, so a fresh database repairs itself on first
+startup and later deployments apply only new migration files. Applied migration
+names are stored in `schema_migrations`; normal deployments never reset, truncate,
+or recreate the existing playlist data.
 
 ## Delivery plan
 

@@ -53,6 +53,12 @@ successful poll, and several edits between polls may appear as one transition.
 Both application processes are disposable. The database is the source of truth
 for schedules, leases, snapshots, events, and OAuth state.
 
+Before serving requests or polling, both processes run the idempotent migration
+runner. A fresh database is initialized automatically, while an existing database
+applies only migration files not recorded in `schema_migrations`. Deployment does
+not drop, truncate, or reseed application tables, so snapshots and change history
+survive builds and restarts.
+
 ## 3. Components
 
 ### Web process
